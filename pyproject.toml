@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dms-detection-pipeline"
+version = "0.1.0"
+description = "LiDAR medium-voltage infrastructure reconstruction and DMS collision analysis"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "numpy>=1.26,<3",
+    "scipy>=1.11",
+    "pandas>=2.0",
+    "matplotlib>=3.8",
+    "plyfile>=1.0",
+    "open3d>=0.18",
+    "pyproj>=3.6",
+    "shapely>=2.0",
+    "PyYAML>=6.0",
+    "websockets>=12",
+    "rosbags>=0.10",
+    "opencv-python>=4.8",
+    "contextily>=1.5",
+    "tqdm>=4.65",
+    "plotly>=5.18",
+]
+
+[project.optional-dependencies]
+gpu = [
+    "cupy-cuda12x[ctk]",
+    "nvidia-ml-py>=12",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["extractor*", "cable_mt*", "connector*", "points*", "classifier*", "rebuild*", "route*", "dms*"]
+
+[tool.setuptools.package-data]
+cable_mt = ["*.html"]

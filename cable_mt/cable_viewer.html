@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MT Cable Selector v7 — LiDAR</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #ffffff; --surf:  #0b1018; --surf2: #131c28; --surf3: #1a2535;
+  --bdr:   #1e2d40; --bdr2:  #263650; --text:  #b8c8dc; --dim:   #3d5570;
+  --bright:#dceeff; --acc:   #2dd4bf; --adim:  rgba(45,212,191,.12);
+  --aglow: rgba(45,212,191,.22); --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
+  --c0:#ff0000; --c1:#00ff00; --c2:#00ccff;
+  --pole-col: #9ca3a8;
+  --font: 'IBM Plex Mono','Consolas',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--font);font-size:11px;color:var(--text);display:flex;flex-direction:column}
+
+header{height:42px;display:flex;align-items:center;padding:0 16px;gap:12px;
+  background:var(--surf);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-icon{font-size:16px;filter:drop-shadow(0 0 6px var(--acc))}
+.logo-title{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+.logo-tag{font-size:9px;padding:2px 6px;border:1px solid var(--bdr2);border-radius:2px;color:var(--dim)}
+.hsp{flex:1}
+.badge{display:flex;align-items:center;gap:5px;padding:3px 9px;
+  border:1px solid var(--bdr);border-radius:3px;background:var(--surf2);
+  font-size:9px;color:var(--dim);transition:all .3s;white-space:nowrap}
+.badge.ok{border-color:var(--ok);color:var(--ok)}
+.badge.warn{border-color:var(--warn);color:var(--warn)}
+.badge.err{border-color:var(--err);color:var(--err)}
+.dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.ok .dot{animation:blink 2s ease infinite}
+.warn .dot{animation:blink .5s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.workspace{display:flex;flex:1;overflow:hidden}
+.sidebar{width:260px;flex-shrink:0;background:var(--surf);
+  border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
+.sb-scroll{flex:1;overflow-y:auto;scrollbar-width:thin;
+  scrollbar-color:var(--bdr2) transparent;padding-bottom:20px}
+.sb-scroll::-webkit-scrollbar{width:3px}
+.sb-scroll::-webkit-scrollbar-thumb{background:var(--bdr2)}
+.panel{border-bottom:1px solid var(--bdr);padding:10px 11px}
+.ptitle{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.ptitle::before{content:'';display:inline-block;width:2px;height:9px;
+  background:var(--acc);border-radius:1px}
+.field{margin-bottom:6px}.field:last-child{margin-bottom:0}
+.frow{display:flex;justify-content:space-between;margin-bottom:3px;
+  font-size:10px;color:var(--dim)}
+.fval{color:var(--acc);font-weight:600}
+input[type=text]{width:100%;background:var(--surf2);border:1px solid var(--bdr2);
+  color:var(--bright);padding:4px 7px;border-radius:3px;font-family:var(--font);
+  font-size:10px;outline:none;transition:border-color .15s}
+input[type=text]:focus{border-color:var(--acc)}
+input[type=range]{width:100%;appearance:none;height:3px;background:var(--surf3);
+  border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:11px;height:11px;
+  border-radius:50%;background:var(--acc);border:2px solid var(--bg);
+  box-shadow:0 0 4px var(--acc);cursor:pointer}
+.btn{width:100%;padding:5px 9px;border-radius:3px;border:1px solid var(--bdr2);
+  background:var(--surf2);color:var(--text);font-family:var(--font);font-size:10px;
+  font-weight:600;letter-spacing:.07em;text-transform:uppercase;cursor:pointer;
+  transition:all .15s;margin-top:5px}
+.btn:hover{border-color:var(--acc);color:var(--acc);background:var(--adim)}
+.btn-p{background:var(--adim);border-color:var(--acc);color:var(--acc)}
+.btn-p:hover{background:var(--aglow)}
+.btn-sm{padding:3px 8px;font-size:9px;margin-top:4px}
+.btn-err{background:rgba(248,113,113,.05);border-color:var(--err);color:var(--err)}
+.btn-err:hover{background:rgba(248,113,113,.15);border-color:var(--err);color:var(--err)}
+.brow{display:flex;gap:4px}.brow .btn{margin-top:5px; flex:1;}
+.prog-wrap{height:3px;background:var(--surf3);border-radius:2px;overflow:hidden;
+  margin-top:4px;display:none}
+.prog-bar{height:100%;background:var(--acc);border-radius:2px;
+  transition:width .1s;width:0}
+
+.slot-card{border:1px solid var(--bdr2);background:var(--surf2);border-radius:4px;
+  padding:7px 8px;margin-bottom:5px;cursor:pointer;transition:all .15s;position:relative}
+.slot-card:last-child{margin-bottom:0}
+.slot-card:hover{border-color:var(--dim)}
+.slot-card.active{background:var(--surf3)}
+.slot-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.slot-title{display:flex;align-items:center;gap:5px;font-size:11px;
+  font-weight:700;color:var(--bright)}
+.slot-conn-badge{font-size:10px;font-weight:800;letter-spacing:.06em;padding:1px 6px;
+  border-radius:3px;background:rgba(255,255,255,.08);border:1px solid currentColor;
+  box-shadow:0 0 5px currentColor}
+.pole-sel{width:100%;padding:4px 6px;background:var(--surf);border:1px solid var(--bdr2);
+  border-radius:3px;color:var(--text);font-family:var(--font);font-size:10px}
+.slot-swatch{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.slot-stats{font-size:9px;color:var(--dim);line-height:1.5}
+.slot-stats strong{color:var(--text)}
+.slot-warning{font-size:9px;color:var(--warn);margin-top:3px;
+  display:none;line-height:1.4}
+.slot-actions{display:flex;gap:3px;margin-top:5px}
+.slot-btn{background:transparent;border:1px solid var(--bdr);color:var(--dim);
+  font-size:8px;padding:2px 6px;border-radius:2px;cursor:pointer;
+  text-transform:uppercase;font-family:var(--font);transition:all .12s}
+.slot-btn:hover{background:var(--bdr);color:var(--bright)}
+.paint-btn.active{font-weight:700;box-shadow:0 0 8px currentColor;background:rgba(255,255,255,.08)}
+.slot-active-bar{position:absolute;left:0;top:0;bottom:0;width:2px;
+  border-radius:4px 0 0 4px}
+
+.viewport{flex:1;position:relative;overflow:hidden}
+canvas{display:block;width:100%;height:100%;cursor:crosshair}
+
+.ov{position:absolute;pointer-events:none;border-radius:4px;backdrop-filter:blur(8px)}
+.hints{top:11px;left:11px;background:rgba(6,10,15,.84);border:1px solid var(--bdr);
+  padding:7px 10px}
+.hint{display:flex;align-items:center;gap:5px;margin-bottom:3px;
+  font-size:9px;color:var(--dim)}
+.hint:last-child{margin-bottom:0}
+kbd{background:var(--surf3);border:1px solid var(--bdr2);border-radius:2px;
+  padding:0 4px;font-family:var(--font);font-size:9px;color:var(--text)}
+.hint-sep{height:1px;background:var(--bdr);margin:4px 0}
+
+.cable-tip{bottom:11px;right:11px;background:rgba(6,10,15,.92);
+  border:1px solid var(--bdr2);padding:10px 13px;min-width:175px;display:none}
+.cable-tip.show{display:block}
+.ct-label{font-size:8px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:4px}
+.ct-name{font-size:14px;font-weight:700;display:flex;align-items:center;
+  gap:5px;margin-bottom:3px}
+.ct-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ct-info{font-size:9px;color:var(--dim);line-height:1.6}
+.ct-info strong{color:var(--text)}
+
+.loading{inset:0;background:rgba(6,10,15,.88);display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;pointer-events:all}
+.loading.show{display:flex}
+.spinner{width:26px;height:26px;border:2px solid var(--bdr2);
+  border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lmsg{font-size:11px;color:var(--acc)}.lsub{font-size:9px;color:var(--dim)}
+.ripple{position:absolute;width:14px;height:14px;border:2px solid #fff;
+  border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);opacity:0}
+.ripple.fire{animation:rip .4s ease-out forwards}
+@keyframes rip{0%{transform:translate(-50%,-50%) scale(.3);opacity:1}
+               100%{transform:translate(-50%,-50%) scale(3);opacity:0}}
+
+.statusbar{height:22px;display:flex;align-items:center;background:var(--surf);
+  border-top:1px solid var(--bdr);padding:0 4px;flex-shrink:0;overflow:hidden}
+.stat{display:flex;align-items:center;gap:4px;padding:0 8px;
+  border-right:1px solid var(--bdr);height:100%;font-size:9px;white-space:nowrap}
+.stat:first-child{padding-left:8px}
+.sk{color:var(--dim)}.sv{color:var(--bright);font-weight:600}
+.hfill{flex:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-icon">⚡</span>
+    <span class="logo-title">MT Cable</span>
+    <span class="logo-tag">LiDAR · v7</span>
+  </div>
+  <div class="hsp"></div>
+  <div class="badge" id="plyBadge"><div class="dot"></div><span id="plyLabel">No PLY</span></div>
+  <div class="badge" id="wsBadge"><div class="dot"></div><span id="wsLabel">Disconnected</span></div>
+</header>
+
+<div class="workspace">
+<div class="sidebar"><div class="sb-scroll">
+
+  <div class="panel">
+    <div class="ptitle">Connection</div>
+    <div class="field">
+      <div class="frow"><span>WebSocket</span></div>
+      <input type="text" id="wsUrl" value="ws://localhost:8765">
+    </div>
+    <div class="field">
+      <div class="frow"><span>PLY (HTTP)</span></div>
+      <input type="text" id="plyUrl" value="http://localhost:8766/ply">
+    </div>
+    <div class="prog-wrap" id="progWrap"><div class="prog-bar" id="progBar"></div></div>
+    <div class="brow">
+      <button class="btn btn-p" id="btnConnect" style="flex:1">⚡ Connect</button>
+      <button class="btn" id="btnPLY" style="flex:1">📂 PLY</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Tramos confirmados (no por ID)</div>
+    <div style="font-size:10px;color:var(--dim);margin-bottom:6px">Los pares detectados al seleccionar cables se registran. También puedes añadir o quitar conexiones manualmente.</div>
+    <div class="brow"><button class="btn" id="btnAddSpan" style="flex:1">+ Conectar postes</button><button class="btn" id="btnRemoveSpan" style="flex:1">− Quitar tramo</button></div>
+    <div id="confirmedSpans" style="font-size:10px;white-space:pre-wrap;max-height:100px;overflow:auto;margin-top:5px"></div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">Visualization</div>
+    <div class="field">
+      <div class="frow"><span>Cable size</span><span id="cvSzVal" class="fval">15.0</span></div>
+      <input type="range" id="cvSzS" min="1" max="15" step="0.1" value="15.0">
+    </div>
+    <div class="field">
+      <div class="frow"><span>Pole size</span><span id="poleSzVal" class="fval">15.0</span></div>
+      <input type="range" id="poleSzS" min="1" max="30" step="0.1" value="15.0">
+    </div>
+  </div>
+
+  <div class="panel" id="spanPanel" style="display:none">
+    <div class="ptitle">Span &amp; Connections</div>
+    <div style="background:var(--surf2); border:1px solid var(--bdr2); border-radius:4px; padding:7px 8px; margin-bottom:6px">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px">
+        <span id="spanPolesBadge" style="font-weight:700; font-size:12px; color:var(--acc); letter-spacing:.05em">Span P1 → P2</span>
+        <span id="spanDistBadge" style="font-size:10px; color:var(--dim)">— m</span>
+      </div>
+      <div style="font-size:8px; color:var(--dim); line-height:1.3" id="spanTrajInfo">
+        Direction of travel by odometry · press Q to cycle combinations
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px">
+      <div>
+        <div style="font-size:8px; color:var(--dim); margin-bottom:2px" id="lblPoleA">Pole A</div>
+        <select id="cfgPoleA" class="pole-sel" onchange="onPoleConfigChanged()">
+          <option value="SMI">S M I</option>
+          <option value="ESE">E S E</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:8px; color:var(--dim); margin-bottom:2px" id="lblPoleB">Pole B</div>
+        <select id="cfgPoleB" class="pole-sel" onchange="onPoleConfigChanged()">
+          <option value="SMI">S M I</option>
+          <option value="ESE">E S E</option>
+        </select>
+      </div>
+    </div>
+    <div id="spanConnsSummary" style="font-size:9px; color:var(--text); padding:4px 6px; background:rgba(0,229,255,.06); border:1px solid rgba(0,229,255,.18); border-radius:3px">
+      Combination: <strong id="connSummaryText" style="color:var(--bright)">SS - MM - II</strong>
+    </div>
+    <div style="font-size:8px;color:var(--dim);margin-top:5px;text-align:right">
+      <kbd style="background:var(--surf3);border:1px solid var(--bdr2);border-radius:2px;padding:0 4px;">Q</kbd> cycle combinations
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ptitle">MT Lines — 3 Slots</div>
+
+    <div class="slot-card active" id="slot-0" onclick="setActiveSlot(0)">
+      <div class="slot-active-bar" style="background:var(--c0)"></div>
+      <div class="slot-header">
+        <div class="slot-title">
+          <div class="slot-swatch" style="background:var(--c0);box-shadow:0 0 5px var(--c0)"></div>
+          <span id="slot-title-0">L1 — Top</span>
+        </div>
+        <span class="slot-conn-badge" id="conn-badge-0" style="display:none">--</span>
+      </div>
+      <div class="slot-stats" id="stat-0">0 seeds · — pts</div>
+      <div class="slot-warning" id="warn-0"></div>
+      <div class="slot-actions">
+        <button class="slot-btn" onclick="clearSlot(0,event)">✕ Clear</button>
+        <button class="slot-btn" onclick="focusSlot(0,event)">⊙ View</button>
+      </div>
+    </div>
+
+    <div class="slot-card" id="slot-1" onclick="setActiveSlot(1)">
+      <div class="slot-active-bar" style="background:var(--c1)"></div>
+      <div class="slot-header">
+        <div class="slot-title">
+          <div class="slot-swatch" style="background:var(--c1);box-shadow:0 0 5px var(--c1)"></div>
+          <span id="slot-title-1">L2 — Middle</span>
+        </div>
+        <span class="slot-conn-badge" id="conn-badge-1" style="display:none">--</span>
+      </div>
+      <div class="slot-stats" id="stat-1">0 seeds · — pts</div>
+      <div class="slot-warning" id="warn-1"></div>
+      <div class="slot-actions">
+        <button class="slot-btn" onclick="clearSlot(1,event)">✕ Clear</button>
+        <button class="slot-btn" onclick="focusSlot(1,event)">⊙ View</button>
+      </div>
+    </div>
+
+    <div class="slot-card" id="slot-2" onclick="setActiveSlot(2)">
+      <div class="slot-active-bar" style="background:var(--c2)"></div>
+      <div class="slot-header">
+        <div class="slot-title">
+          <div class="slot-swatch" style="background:var(--c2);box-shadow:0 0 5px var(--c2)"></div>
+          <span id="slot-title-2">L3 — Bottom</span>
+        </div>
+        <span class="slot-conn-badge" id="conn-badge-2" style="display:none">--</span>
+      </div>
+      <div class="slot-stats" id="stat-2">0 seeds · — pts</div>
+      <div class="slot-warning" id="warn-2"></div>
+      <div class="slot-actions">
+        <button class="slot-btn" onclick="clearSlot(2,event)">✕ Clear</button>
+        <button class="slot-btn" onclick="focusSlot(2,event)">⊙ View</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:5px; margin-top:10px;">
+      <button class="btn btn-sm" id="btnUndo" style="flex:1; background:var(--surf3); border-color:var(--bdr2);" title="Undo the last seed of the active slot">
+        ↩ Undo click
+      </button>
+      <button class="btn btn-sm btn-err" id="btnClearAll" style="flex:1;">
+        ✕ Clear all
+      </button>
+    </div>
+
+    <div class="ptitle" style="margin-top:12px">Manual paint</div>
+    <div class="brow">
+      <button class="btn paint-btn" id="btnPaint1" style="border-color:var(--c0);color:var(--c0)">Paint L1</button>
+      <button class="btn paint-btn" id="btnPaint2" style="border-color:var(--c1);color:var(--c1)">Paint L2</button>
+      <button class="btn paint-btn" id="btnPaint3" style="border-color:var(--c2);color:var(--c2)">Paint L3</button>
+    </div>
+    <div id="paintHelp" style="font-size:9px;color:var(--dim);margin-top:6px">
+      Activate a color and drag over the cables. Press again to move the camera.
+    </div>
+  </div>
+
+  <div class="panel" style="border-bottom:none">
+    <div class="ptitle">Labeling &amp; Export</div>
+    <div style="font-size:9px;color:var(--dim);margin-bottom:6px;">
+      Save the current selection into the PLY file with individual labels.
+    </div>
+
+    <div class="brow">
+      <button class="btn" id="btnLbl1" style="border-color:var(--c0); color:var(--c0)">Label L1</button>
+      <button class="btn" id="btnLbl2" style="border-color:var(--c1); color:var(--c1)">Label L2</button>
+      <button class="btn" id="btnLbl3" style="border-color:var(--c2); color:var(--c2)">Label L3</button>
+    </div>
+
+    <button class="btn btn-p" id="btnLblAll" style="margin-top:8px;width:100%">
+      ✓ Label 3 lines
+    </button>
+
+    <button class="btn" id="btnFinalize" style="margin-top:12px; width:100%; padding:12px 8px; background:linear-gradient(135deg, #00e5ff 0%, #a855f7 100%); color:#ffffff; font-weight:800; font-size:11px; letter-spacing:.10em; border:none; border-radius:4px; box-shadow:0 0 14px rgba(0,229,255,.45); cursor:pointer;">
+      🏁 FINALIZE (SAVE PLY + JSON)
+    </button>
+    <div style="font-size:8px;color:var(--dim);margin-top:5px;line-height:1.4">
+      Writes the labeled PLY and both JSON reports to the project folders (no browser download).
+    </div>
+  </div>
+
+</div></div>
+
+<div class="viewport" id="viewport">
+  <canvas id="canvas"></canvas>
+
+  <div class="ov hints">
+    <div class="hint"><kbd>Ctrl</kbd>+<kbd>Click</kbd> on L1 detects the 3 lines of the span</div>
+    <div class="hint"><kbd>Q</kbd> Cycle pole combinations (SMI/ESE)</div>
+    <div class="hint"><kbd>→</kbd> Rotate ring (L1←L3, L2←L1, L3←L2)</div>
+    <div class="hint"><kbd>←</kbd> Rotate ring opposite (L1←L2, L2←L3, L3←L1)</div>
+    <div class="hint"><kbd>↑</kbd><kbd>↓</kbd> Keep L1 (red) fixed · swap L2 ↔ L3</div>
+    <div class="hint"><kbd>Ctrl</kbd>+<kbd>Z</kbd> Undo last click</div>
+    <div class="hint"><kbd>Drag</kbd> Rotate &nbsp;&nbsp; <kbd>Scroll</kbd> Zoom</div>
+    <div class="hint"><kbd>Shift</kbd>+<kbd>Drag</kbd> Pan</div>
+    <div class="hint-sep"></div>
+    <div class="hint"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> + <kbd>Drag</kbd> Paint manually</div>
+    <div class="hint"><kbd>R</kbd> Reset camera</div>
+    <div class="hint"><kbd>Esc</kbd> Hide panel</div>
+  </div>
+
+  <div class="ov cable-tip" id="cableTip">
+    <div class="ct-label">Active selection</div>
+    <div class="ct-name"><div class="ct-dot" id="ctDot"></div><span id="ctName">—</span></div>
+    <div class="ct-info" id="ctInfo"></div>
+  </div>
+
+  <div class="ov loading" id="loadOv">
+    <div class="spinner"></div>
+    <div class="lmsg" id="lmsg">Loading...</div>
+    <div class="lsub" id="lsub"></div>
+  </div>
+
+  <div class="ripple" id="ripple"></div>
+</div>
+</div>
+
+<div class="statusbar">
+  <div class="stat"><span class="sk">PLY</span><span class="sv" id="stTotal">—</span></div>
+  <div class="stat"><span class="sk">Cable pts</span><span class="sv" id="stCable">—</span></div>
+  <div class="stat"><span class="sk">Pole pts</span><span class="sv" id="stPole">—</span></div>
+  <div class="stat"><span class="sk" id="stLblHead0">L1</span><span class="sv" id="stL0">—</span></div>
+  <div class="stat"><span class="sk" id="stLblHead1">L2</span><span class="sv" id="stL1">—</span></div>
+  <div class="stat"><span class="sk" id="stLblHead2">L3</span><span class="sv" id="stL2">—</span></div>
+  <div class="hfill"></div>
+  <div class="stat"><span class="sk">Active slot</span><span class="sv" id="stSlot">L1</span></div>
+  <div class="stat"><span class="sk">FPS</span><span class="sv" id="stFPS">—</span></div>
+</div>
+
+<input type="hidden" id="prSlider" value="0.15">
+<input type="hidden" id="epsSlider" value="0.60">
+<input type="hidden" id="gapSlider" value="3.0">
+<input type="hidden" id="momSlider" value="0.85">
+<input type="hidden" id="bgSzS" value="6">
+<input type="hidden" id="bgOpS" value="1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/PLYLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   CONSTANTS — Only L1 / L2 / L3 exist (no L4)
+════════════════════════════════════════════════════════════════════ */
+const DEFAULT_SLOT_CONFIG = [
+  { name: 'L1 — Top',    tag: 'L1', hex: 0xff0000, css: '#ff0000', labelId: null },
+  { name: 'L2 — Middle', tag: 'L2', hex: 0x00ff00, css: '#00ff00', labelId: null },
+  { name: 'L3 — Bottom', tag: 'L3', hex: 0x00ccff, css: '#00ccff', labelId: null }
+];
+
+let currentSlotConfig = DEFAULT_SLOT_CONFIG.map(c => ({ ...c }));
+
+function slotHex(sid)  { return currentSlotConfig[sid].hex; }
+function slotCss(sid)  { return currentSlotConfig[sid].css; }
+function slotName(sid) { return currentSlotConfig[sid].name; }
+function slotTag(sid)  { return currentSlotConfig[sid].tag; }
+function slotLbl(sid)  { return currentSlotConfig[sid].labelId; }
+
+const STAT_IDS = ['stL0', 'stL1', 'stL2'];
+
+/* ────────────────────────────────────────────────────────────────────
+   POLE COMBINATION CYCLER (Q key)
+   Ordered list of (cfgPoleA, cfgPoleB) pairs the user cycles through.
+──────────────────────────────────────────────────────────────────── */
+const POLE_COMBINATIONS = [
+  { a: 'SMI', b: 'SMI' },   // SS - MM - II
+  { a: 'SMI', b: 'ESE' },   // SE - MS - IE
+  { a: 'ESE', b: 'SMI' },   // ES - SM - EI
+  { a: 'ESE', b: 'ESE' }    // EE - SS - EE
+];
+let poleCombinationIdx = 0;
+
+/* ════════════════════════════════════════════════════════════════════
+   GLOBAL STATE
+════════════════════════════════════════════════════════════════════ */
+const S = {
+  ws: null, connected: false,
+  centroid:   new THREE.Vector3(),
+  geoOffset:  new THREE.Vector3(),
+  bgCloud:    null,
+  cableCloud: null,
+  poleCloud:  null,
+  inactiveCableIndices: [],
+  plyLoaded:  false,
+  activeSlot: 0,
+  poles: [],
+  poleSpritesGroup: new THREE.Group(),
+  activeSpan: null,
+  spans: {},
+  slots: [0,1,2].map(() => ({
+    seeds:       [],
+    cloud:       null,
+    markers:     new THREE.Group(),
+    nTotal:      0,
+    connCode:    null,
+  }))
+};
+
+/* ════════════════════════════════════════════════════════════════════
+   THREE.JS
+════════════════════════════════════════════════════════════════════ */
+const canvas   = document.getElementById('canvas');
+const viewport = document.getElementById('viewport');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0xffffff);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, 1, 0.01, 500000);
+camera.position.set(0, -80, 40);
+camera.up.set(0, 0, 1);
+
+const controls = new THREE.OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.screenSpacePanning = true;
+controls.zoomSpeed = 1.5;
+
+const raycaster = new THREE.Raycaster();
+
+S.slots.forEach(sl => scene.add(sl.markers));
+scene.add(S.poleSpritesGroup);
+
+let defCamPos = camera.position.clone();
+let defTarget = controls.target.clone();
+
+function onResize() {
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', onResize);
+onResize();
+
+let fpsF = 0, fpsT = performance.now();
+(function loop() {
+  requestAnimationFrame(loop);
+  controls.update();
+  renderer.render(scene, camera);
+  if (++fpsF, performance.now() - fpsT >= 1000) {
+    document.getElementById('stFPS').textContent = fpsF;
+    fpsF = 0; fpsT = performance.now();
+  }
+})();
+
+/* ════════════════════════════════════════════════════════════════════
+   PLY LOADING (from HTTP)
+════════════════════════════════════════════════════════════════════ */
+function gv(id) { return parseFloat(document.getElementById(id).value); }
+
+function loadPLY(url) {
+  showLoad('Downloading PLY...', url);
+  setPLYBadge('warn', '⏳ Downloading...');
+  const progWrap = document.getElementById('progWrap');
+  const progBar  = document.getElementById('progBar');
+  progWrap.style.display = 'block'; progBar.style.width = '0%';
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.responseType = 'arraybuffer';
+  xhr.onprogress = e => {
+    if (e.lengthComputable) {
+      progBar.style.width = (e.loaded / e.total * 100) + '%';
+      showLoad('Downloading PLY...', `${(e.loaded/1048576).toFixed(1)}/${(e.total/1048576).toFixed(1)} MB`);
+    }
+  };
+  xhr.onerror = () => {
+    hideLoad(); progWrap.style.display = 'none';
+    setPLYBadge('err', '✗ HTTP error');
+    alert(`Could not connect to:\n${url}\n\nCheck that cable_mt.py is running.`);
+  };
+  xhr.onload = () => {
+    progWrap.style.display = 'none';
+    if (xhr.status !== 200) { hideLoad(); setPLYBadge('err', `✗ HTTP ${xhr.status}`); return; }
+    showLoad('Processing geometry...', '');
+    setTimeout(() => _parsePLY(xhr.response), 30);
+  };
+  xhr.send();
+}
+
+function _parsePLY(buffer) {
+  try {
+    const geo  = new THREE.PLYLoader().parse(buffer);
+    const nPts = geo.attributes.position.count;
+    document.getElementById('stTotal').textContent = nPts.toLocaleString();
+
+    const cx = S.centroid.x, cy = S.centroid.y, cz = S.centroid.z;
+    S.geoOffset.set(cx, cy, cz);
+    geo.translate(-cx, -cy, -cz);
+
+    const positions = geo.attributes.position.array;
+    if (S.bgCloud) { scene.remove(S.bgCloud); S.bgCloud.geometry.dispose(); S.bgCloud.material.dispose(); }
+    S.bgCloud = null;
+    buildPoleCloud(positions);
+    S.plyLoaded = true;
+
+    geo.computeBoundingBox();
+    const sz = new THREE.Vector3(); geo.boundingBox.getSize(sz);
+    const d  = Math.max(sz.x, sz.y, sz.z);
+    camera.position.set(0, -d * 0.5, d * 0.28);
+    controls.target.set(0, 0, 0); controls.update();
+    defCamPos = camera.position.clone(); defTarget = controls.target.clone();
+    geo.dispose();
+
+    const mb = (buffer.byteLength / 1048576).toFixed(1);
+    setPLYBadge('ok', `✓ ${mb}MB · ${nPts.toLocaleString()}pts`);
+    hideLoad();
+  } catch(err) {
+    hideLoad(); setPLYBadge('err', '✗ Parse error'); console.error(err);
+  }
+}
+
+function buildPoleCloud(flat) {
+  const arr = new Float32Array(flat);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+  const mat = new THREE.PointsMaterial({
+    size:            gv('poleSzS') * 0.016,
+    color:           0xb400ff,
+    opacity:         1.0,
+    transparent:     false,
+    depthWrite:      true,
+    sizeAttenuation: true,
+  });
+  if (S.poleCloud) {
+    scene.remove(S.poleCloud);
+    S.poleCloud.geometry.dispose();
+    S.poleCloud.material.dispose();
+  }
+  S.poleCloud = new THREE.Points(geo, mat);
+  scene.add(S.poleCloud);
+}
+
+function buildCableCloud(flat) {
+  const arr = new Float32Array(flat);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size:            gv('cvSzS') * 0.016,
+    color:           0x000000,
+    opacity:         0.90,
+    transparent:     true,
+    depthWrite:      false,
+    sizeAttenuation: true,
+  });
+
+  if (S.cableCloud) { scene.remove(S.cableCloud); S.cableCloud.geometry.dispose(); S.cableCloud.material.dispose(); }
+  S.cableCloud = new THREE.Points(geo, mat);
+  S.cableCloud.position.set(0, 0, 0);
+  raycaster.params.Points.threshold = gv('cvSzS') * 0.08;
+  scene.add(S.cableCloud);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   WEBSOCKET
+════════════════════════════════════════════════════════════════════ */
+let reconnTimer = null;
+
+function connect() {
+  const url = document.getElementById('wsUrl').value.trim();
+  setWSBadge('warn', 'Connecting...');
+  if (S.ws) { S.ws.onclose = null; S.ws.close(); }
+  S.ws = new WebSocket(url);
+  S.ws.onopen    = () => setWSBadge('ok', 'Connected');
+  S.ws.onmessage = e => { try { handleMsg(JSON.parse(e.data)); } catch(err) { console.error(err); } };
+  S.ws.onerror   = e => console.error('[WS]', e);
+  S.ws.onclose   = () => {
+    setWSBadge('', 'Disconnected'); S.connected = false;
+    clearTimeout(reconnTimer); reconnTimer = setTimeout(connect, 4000);
+  };
+}
+
+function wsSend(o) {
+  if (S.ws && S.ws.readyState === WebSocket.OPEN) S.ws.send(JSON.stringify(o));
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   SERVER MESSAGES
+════════════════════════════════════════════════════════════════════ */
+function handleMsg(msg) {
+  switch (msg.type) {
+    case 'init':           handleInit(msg);           break;
+    case 'selection':      handleSelection(msg);      break;
+    case 'auto_selection': handleAutoSelection(msg);  break;
+    case 'labeled':        handleLabeled(msg);        break;
+    case 'labeled_all':    handleLabeledAll(msg);     break;
+    case 'finalize_ready': handleFinalizeReady(msg);  break;
+    case 'error':          selectedPoleIds = []; console.warn('[SRV]', msg.message); hideLoad(); alert(msg.message); break;
+  }
+}
+
+function createPoleSprite(p, isHighlighted = false) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+
+  const bg = isHighlighted ? 'rgba(0, 229, 255, 0.92)' : 'rgba(15, 23, 42, 0.88)';
+  const border = isHighlighted ? '#ffffff' : '#38bdf8';
+  const textCol = isHighlighted ? '#000000' : '#ffffff';
+
+  ctx.fillStyle = bg;
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 3;
+
+  const x = 8, y = 8, w = 112, h = 48, r = 8;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = textCol;
+  ctx.font = 'bold 26px "JetBrains Mono", Consolas, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(p.name, 64, 32);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(3.6, 1.8, 1.0);
+  sprite.position.set(p.cx, p.cy, p.z_top + 1.2);
+  sprite.renderOrder = 999;
+  sprite.userData.polePid = p.pid;
+  sprite.userData.poleName = p.name;
+  return sprite;
+}
+
+function updatePoleSprites(activePoles = []) {
+  while (S.poleSpritesGroup.children.length > 0) {
+    const c = S.poleSpritesGroup.children[0];
+    if (c.material.map) c.material.map.dispose();
+    c.material.dispose();
+    S.poleSpritesGroup.remove(c);
+  }
+  if (!S.poles || !S.poles.length) return;
+  S.poles.forEach(p => {
+    const isHigh = activePoles.includes(p.name);
+    const sprite = createPoleSprite(p, isHigh);
+    S.poleSpritesGroup.add(sprite);
+  });
+}
+
+function getCombinationForPair(cfgA, cfgB) {
+  const key = `${cfgA}-${cfgB}`;
+  if (key === 'SMI-ESE') return ['SE', 'MS', 'IE'];
+  if (key === 'ESE-SMI') return ['ES', 'SM', 'EI'];
+  if (key === 'SMI-SMI') return ['SS', 'MM', 'II'];
+  if (key === 'ESE-ESE') return ['EE', 'SS', 'EE'];
+  return ['SS', 'MM', 'II'];
+}
+
+function spanKey(a, b) { return `${a}->${b}`; }
+function renderConfirmedSpans() {
+  const el = document.getElementById('confirmedSpans');
+  if (el) el.textContent = Object.values(S.spans || {}).map(x => x.span).join('\n') || 'Sin tramos confirmados';
+}
+function registerSpan(a, b) {
+  if (!a || !b || a === b) return false;
+  const pA = S.poles.find(p => p.name === a), pB = S.poles.find(p => p.name === b);
+  if (!pA || !pB) return false;
+  const key = spanKey(a,b);
+  if (!S.spans[key]) {
+    const dist = Math.hypot(pB.cx-pA.cx, pB.cy-pA.cy, pB.z_bottom-pA.z_bottom);
+    S.spans[key] = {span:`${a} -> ${b}`,from_pole:a,to_pole:b,
+      length_m:dist,config_pole_a:'S M I',config_pole_b:'S M I',
+      combination:'SS - MM - II',connections:['SS','MM','II']};
+  }
+  renderConfirmedSpans();
+  return true;
+}
+function initSpansData() {
+  S.spans = {}; // Never infer topology from numerical order.
+  renderConfirmedSpans();
+}
+document.getElementById('btnAddSpan').addEventListener('click', () => {
+  const a = prompt('ID del poste A (ej. P3)'); if (a === null) return;
+  const b = prompt('ID del poste B (ej. P12)'); if (b === null) return;
+  if (!registerSpan(a.trim().toUpperCase(), b.trim().toUpperCase())) alert('Par inválido: verifica ambos IDs.');
+});
+document.getElementById('btnRemoveSpan').addEventListener('click', () => {
+  const a = prompt('Poste A del tramo a quitar'); if (a === null) return;
+  const b = prompt('Poste B del tramo a quitar'); if (b === null) return;
+  const x = a.trim().toUpperCase(), y = b.trim().toUpperCase();
+  delete S.spans[spanKey(x,y)]; delete S.spans[spanKey(y,x)];
+  if (S.activeSpan && ((S.activeSpan.poleA === x && S.activeSpan.poleB === y) || (S.activeSpan.poleA === y && S.activeSpan.poleB === x))) S.activeSpan = null;
+  renderConfirmedSpans();
+});
+
+function computeSlotConnections() {
+  if (!S.activeSpan) return;
+  const elA = document.getElementById('cfgPoleA');
+  const elB = document.getElementById('cfgPoleB');
+  const cfgA = elA ? elA.value : 'SMI';
+  const cfgB = elB ? elB.value : 'SMI';
+
+  const baseCodes = getCombinationForPair(cfgA, cfgB);
+  const combStr = baseCodes.join(' - ');
+
+  for (let sid = 0; sid < 3; sid++) {
+    const code = baseCodes[sid] || '--';
+    S.slots[sid].connCode = code;
+
+    const badge = document.getElementById(`conn-badge-${sid}`);
+    if (badge) {
+      badge.textContent = code;
+      badge.style.display = 'inline-block';
+      badge.style.color = slotCss(sid);
+      badge.style.borderColor = slotCss(sid);
+    }
+  }
+
+  const sumEl = document.getElementById('connSummaryText');
+  if (sumEl) sumEl.textContent = combStr;
+
+  const spanKey = `${S.activeSpan.poleA}->${S.activeSpan.poleB}`;
+  if (!S.spans) S.spans = {};
+  registerSpan(S.activeSpan.poleA, S.activeSpan.poleB);
+  S.spans[spanKey] = {
+    span: `${S.activeSpan.poleA} -> ${S.activeSpan.poleB}`,
+    from_pole: S.activeSpan.poleA,
+    to_pole: S.activeSpan.poleB,
+    length_m: S.activeSpan.length,
+    config_pole_a: cfgA === 'SMI' ? 'S M I' : 'E S E',
+    config_pole_b: cfgB === 'SMI' ? 'S M I' : 'E S E',
+    combination: combStr,
+    connections: baseCodes.slice()
+  };
+
+  const activeSid = S.activeSlot;
+  if (S.slots[activeSid].cloud && S.slots[activeSid].nTotal > 0) {
+    updateTipInfo(activeSid);
+  }
+}
+
+function onPoleConfigChanged() {
+  computeSlotConnections();
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Q key: cycle through POLE_COMBINATIONS, updating both selects.
+   Keeps the "last shown" combination as the active one.
+──────────────────────────────────────────────────────────────────── */
+function cyclePoleCombination() {
+  poleCombinationIdx = (poleCombinationIdx + 1) % POLE_COMBINATIONS.length;
+  const combo = POLE_COMBINATIONS[poleCombinationIdx];
+
+  const elA = document.getElementById('cfgPoleA');
+  const elB = document.getElementById('cfgPoleB');
+  if (elA) elA.value = combo.a;
+  if (elB) elB.value = combo.b;
+
+  computeSlotConnections();
+
+  console.log(
+    `[Q] Combination #${poleCombinationIdx + 1}/${POLE_COMBINATIONS.length}: ` +
+    `PoleA=${combo.a}  PoleB=${combo.b}`
+  );
+}
+
+function updateTipInfo(sid) {
+  const activeSl = S.slots[sid];
+  if (!activeSl || !activeSl.lastMsg) return;
+  const msg = activeSl.lastMsg;
+  document.getElementById('ctDot').style.cssText = `background:${slotCss(sid)};box-shadow:0 0 7px ${slotCss(sid)}`;
+  document.getElementById('ctName').textContent = slotName(sid);
+  document.getElementById('ctName').style.color = slotCss(sid);
+  const connStr = activeSl.connCode ? ` · Connection: <strong style="color:var(--bright)">${activeSl.connCode}</strong>` : '';
+  document.getElementById('ctInfo').innerHTML =
+    `<strong>${msg.n_total.toLocaleString()}</strong> total pts · ` +
+    `<strong>${msg.n_viz}</strong> viz${connStr}<br>` +
+    `Length: <strong>${msg.spine_length_m}m</strong> · Density: <strong>${msg.pts_per_m} pts/m</strong><br>` +
+    `${activeSl.seeds.length} seeds`;
+}
+
+function handleAutoSelection(msg) {
+  hideLoad();
+  if (!msg.ok) {
+    console.warn('[AUTO]', msg.message);
+    selectedPoleIds = [];
+    alert(msg.message);
+    return;
+  }
+  resetSlotConfig();
+  const topSeeds = S.slots[0].seeds.slice();
+  [0, 1, 2].forEach(i => clearSlot(i));
+  msg.selections.forEach(sel => {
+    S.slots[sel.slot_id].seeds = sel.slot_id === 0
+      ? topSeeds
+      : [sel.seed_world];
+    handleSelection(sel);
+  });
+
+  const spanPoles = msg.span_poles || [`P${msg.pole_indices[0] + 1}`, `P${msg.pole_indices[1] + 1}`];
+  S.activeSpan = {
+    poleA: spanPoles[0],
+    poleB: spanPoles[1],
+    pole0Idx: msg.pole_indices[0],
+    pole1Idx: msg.pole_indices[1],
+    length: msg.span_length_m,
+    linesInfo: msg.lines_info || []
+  };
+
+  registerSpan(spanPoles[0], spanPoles[1]);
+  const panel = document.getElementById('spanPanel');
+  if (panel) panel.style.display = 'block';
+  const pBadge = document.getElementById('spanPolesBadge');
+  if (pBadge) pBadge.textContent = `Span ${spanPoles[0]} → ${spanPoles[1]}`;
+  const dBadge = document.getElementById('spanDistBadge');
+  if (dBadge) dBadge.textContent = `${msg.span_length_m} m`;
+  const lblA = document.getElementById('lblPoleA');
+  if (lblA) lblA.textContent = `Pole A (${spanPoles[0]})`;
+  const lblB = document.getElementById('lblPoleB');
+  if (lblB) lblB.textContent = `Pole B (${spanPoles[1]})`;
+
+  // Reset combination cycle to the first entry (SMI/SMI)
+  poleCombinationIdx = 0;
+  const cfgA = document.getElementById('cfgPoleA');
+  if (cfgA) cfgA.value = POLE_COMBINATIONS[0].a;
+  const cfgB = document.getElementById('cfgPoleB');
+  if (cfgB) cfgB.value = POLE_COMBINATIONS[0].b;
+
+  updatePoleSprites([spanPoles[0], spanPoles[1]]);
+  computeSlotConnections();
+
+  console.log(
+    `Auto span ${msg.span_length_m}m between poles ${spanPoles.join(' and ')}`
+  );
+}
+
+function handleInit(msg) {
+  hideLoad();
+  S.connected = true;
+  S.centroid.set(msg.centroid[0], msg.centroid[1], msg.centroid[2]);
+  document.getElementById('stCable').textContent = msg.n_cable_pts.toLocaleString();
+  document.getElementById('stPole').textContent = msg.n_pole_pts.toLocaleString();
+
+  if (msg.slot_label_ids) {
+    DEFAULT_SLOT_CONFIG[0].labelId = msg.slot_label_ids[0];
+    DEFAULT_SLOT_CONFIG[1].labelId = msg.slot_label_ids[1];
+    DEFAULT_SLOT_CONFIG[2].labelId = msg.slot_label_ids[2];
+    currentSlotConfig = DEFAULT_SLOT_CONFIG.map(c => ({ ...c }));
+  }
+
+  if (msg.cable_preview && msg.cable_preview.length > 0) {
+    buildCableCloud(msg.cable_preview);
+    hideCableIndices(msg.inactive_cable_indices || []);
+  }
+
+  if (msg.poles && msg.poles.length > 0) {
+    S.poles = msg.poles;
+    initSpansData();
+    updatePoleSprites();
+    console.log(`[INIT] ${S.poles.length} poles ordered by odometry ready.`);
+  }
+
+  if (!S.plyLoaded) {
+    const u = document.getElementById('plyUrl').value.trim();
+    if (u) setTimeout(() => loadPLY(u), 100);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   REPORT BUILDERS
+──────────────────────────────────────────────────────────────────── */
+function buildHtmlReport() {
+  const spans = Object.values(S.spans || {});
+  return {total_poles:(S.poles || []).length,total_spans:spans.length,
+    poles:(S.poles || []).map(p => ({Pole_ID:p.pid})), spans:spans};
+}
+function buildExtractorReport() {
+  return Object.values(S.spans || {}).map(span => {
+    const a = S.poles.find(p => p.name === span.from_pole);
+    const b = S.poles.find(p => p.name === span.to_pole);
+    if (!a || !b) return null;
+    const distance = Math.hypot(b.cx-a.cx,b.cy-a.cy,b.z_bottom-a.z_bottom);
+    return {from_id:a.pid,to_id:b.pid,distance,connections:span.connections || []};
+  }).filter(Boolean);
+}
+
+function finalizeAll() {
+  if (!S.connected) {
+    alert('WebSocket disconnected. Connect to the server first.');
+    return;
+  }
+  showLoad('Finalizing...', 'Writing PLY + JSON to project folders...');
+  if (S.activeSpan) onPoleConfigChanged();
+
+  const htmlReport = buildHtmlReport();
+  const extractorReport = buildExtractorReport();
+
+  wsSend({
+    type: 'finalize',
+    html_report: htmlReport,
+    extractor_report: extractorReport,
+    spans: Object.values(S.spans || {})
+  });
+}
+
+function handleFinalizeReady(msg) {
+  hideLoad();
+  alert(
+    `✓ Finalization complete.\n\n` +
+    `Files saved to project folders (no browser download):\n\n` +
+    `• Labeled PLY:\n  ${msg.ply_path || msg.ply_filename || '—'}\n\n` +
+    `• HTML report JSON:\n  ${msg.html_path || msg.html_filename || '—'}\n\n` +
+    `• Extractor report JSON:\n  ${msg.extractor_path || msg.extractor_filename || '—'}`
+  );
+  console.log('[FINALIZE] Files written:', msg);
+}
+
+function handleSelection(msg) {
+  hideLoad();
+  const sid = msg.slot_id;
+  if (sid < 0 || sid > 2) return;
+  const sl = S.slots[sid];
+  sl.lastMsg = msg;
+
+  if (!msg.ok) {
+    document.getElementById(`warn-${sid}`).textContent = '✗ ' + msg.message;
+    document.getElementById(`warn-${sid}`).style.display = 'block';
+    if (msg.snap_seeds) updateSnapMarkers(sid, msg.snap_seeds);
+    updateStatText(sid, sl.seeds.length, 0, null, null);
+    return;
+  }
+  document.getElementById(`warn-${sid}`).style.display = 'none';
+  if (msg.snap_seeds) updateSnapMarkers(sid, msg.snap_seeds);
+
+  const flat = new Float32Array(msg.points_flat);
+  const geo  = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(flat, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size:            gv('cvSzS') * 0.018,
+    color:           slotHex(sid),
+    transparent:     true,
+    opacity:         1.0,
+    depthTest:       false,
+    depthWrite:      false,
+    sizeAttenuation: true,
+  });
+
+  if (sl.cloud) {
+    scene.remove(sl.cloud); sl.cloud.geometry.dispose(); sl.cloud.material.dispose();
+  }
+  sl.cloud = new THREE.Points(geo, mat);
+  sl.cloud.position.set(0, 0, 0);
+  sl.cloud.renderOrder = 10 + sid;
+  scene.add(sl.cloud);
+  sl.nTotal = msg.n_total;
+
+  updateStatText(sid, sl.seeds.length, msg.n_total, msg.spine_length_m, msg.pts_per_m);
+  document.getElementById(STAT_IDS[sid]).textContent = msg.n_total.toLocaleString();
+
+  const tip = document.getElementById('cableTip');
+  document.getElementById('ctDot').style.cssText = `background:${slotCss(sid)};box-shadow:0 0 7px ${slotCss(sid)}`;
+  document.getElementById('ctName').textContent = slotName(sid);
+  document.getElementById('ctName').style.color = slotCss(sid);
+  document.getElementById('ctInfo').innerHTML =
+    `<strong>${msg.n_total.toLocaleString()}</strong> total pts · ` +
+    `<strong>${msg.n_viz}</strong> viz<br>` +
+    `Length: <strong>${msg.spine_length_m}m</strong> · Density: <strong>${msg.pts_per_m} pts/m</strong><br>` +
+    `${sl.seeds.length} seeds`;
+  if (msg.warning) tip.innerHTML += `<br><span style="color:var(--warn)">⚠ ${msg.warning}</span>`;
+  tip.classList.add('show');
+}
+
+function handleLabeled(msg) {
+  hideCableIndices(msg.removed_indices || []);
+  clearSlot(msg.slot_id);
+  console.log(`Line ${msg.line_index} labeled successfully (${msg.n_pts} points)`);
+}
+
+function handleLabeledAll(msg) {
+  hideCableIndices(msg.removed_indices || []);
+  msg.lines.forEach(line => clearSlot(line.slot_id));
+  console.log('Three lines labeled:', msg.lines);
+}
+
+function hideCableIndices(indices) {
+  if (!S.cableCloud || !indices.length) return;
+  const attr = S.cableCloud.geometry.attributes.position;
+  const positions = attr.array;
+  indices.forEach(i => {
+    const j = i * 3;
+    if (j + 2 < positions.length) {
+      positions[j] = NaN; positions[j + 1] = NaN; positions[j + 2] = NaN;
+    }
+  });
+  attr.needsUpdate = true;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   SEEDS
+════════════════════════════════════════════════════════════════════ */
+const MARKER_R = 0.06;
+
+function addMarker(sid, normPt) {
+  const sl  = S.slots[sid];
+  const geo = new THREE.SphereGeometry(MARKER_R, 6, 6);
+  const mat = new THREE.MeshBasicMaterial({
+    color:     slotHex(sid),
+    depthTest: false,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(normPt[0], normPt[1], normPt[2]);
+  mesh.renderOrder = 20;
+  sl.markers.add(mesh);
+}
+
+function updateSnapMarkers(sid, snapSeeds) {
+  clearMarkers(sid);
+  snapSeeds.forEach(normPt => addMarker(sid, normPt));
+}
+
+function clearMarkers(sid) {
+  const group = S.slots[sid].markers;
+  while (group.children.length > 0) {
+    const c = group.children[0];
+    group.remove(c);
+    c.geometry.dispose(); c.material.dispose();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   RAYCASTING — Ctrl + Click
+════════════════════════════════════════════════════════════════════ */
+let isDragging = false;
+let lastDown = { x: 0, y: 0 };
+let paintKey = null;
+let paintMode = null;
+let paintStroke = false;
+let paintSlot = 0;
+let paintQueue = new Set();
+let lastPaintSample = 0;
+// Two-click pole selection: click labels P1 then P2 (no Ctrl required).
+let selectedPoleIds = [];
+function choosePole(pid) {
+  if (!S.connected || paintMode !== null || paintKey !== null) return;
+  if (selectedPoleIds.length === 2) selectedPoleIds = [];
+  if (selectedPoleIds.includes(pid)) return;
+  selectedPoleIds.push(pid);
+  const names = selectedPoleIds.map(id => (S.poles.find(p => p.pid === id) || {}).name).filter(Boolean);
+  updatePoleSprites(names);
+  if (selectedPoleIds.length !== 2) return;
+  showLoad('Detecting L1, L2 and L3...', `Between ${names.join(' and ')}`);
+  wsSend({type:'auto_select_span', pole_ids:selectedPoleIds.slice(), seeds:[],
+    perp_radius:gv('prSlider'), eps_grow:gv('epsSlider'),
+    gap_radius:gv('gapSlider'), momentum:gv('momSlider')});
+}
+
+
+function queuePaintPoint(e) {
+  if (!S.cableCloud || performance.now() - lastPaintSample < 25) return;
+  lastPaintSample = performance.now();
+  const rect = canvas.getBoundingClientRect();
+  const mouse = new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width) * 2 - 1,
+   -((e.clientY - rect.top) / rect.height) * 2 + 1
+  );
+  raycaster.setFromCamera(mouse, camera);
+  raycaster.params.Points.threshold = Math.max(gv('cvSzS') * 0.035, 0.20);
+  const hits = raycaster.intersectObject(S.cableCloud);
+  if (!hits.length) return;
+  hits.forEach(hit => {
+    if (Number.isInteger(hit.index)) paintQueue.add(hit.index);
+  });
+  if (paintQueue.size >= 40) flushPaintQueue();
+}
+
+function flushPaintQueue() {
+  if (!paintQueue.size) return;
+  const indices = Array.from(paintQueue);
+  paintQueue.clear();
+  wsSend({ type: 'paint_indices', slot_id: paintSlot, indices });
+}
+
+canvas.addEventListener('pointerdown', e => {
+  lastDown = { x: e.clientX, y: e.clientY };
+  isDragging = false;
+  const requestedPaintSlot = paintMode !== null ? paintMode : paintKey;
+  if (requestedPaintSlot !== null && e.button === 0 && S.connected) {
+    paintStroke = true;
+    paintSlot = requestedPaintSlot;
+    setActiveSlot(paintSlot);
+    queuePaintPoint(e);
+    e.preventDefault();
+  }
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (paintStroke) {
+    queuePaintPoint(e);
+    return;
+  }
+  if (Math.hypot(e.clientX - lastDown.x, e.clientY - lastDown.y) > 4) {
+    isDragging = true;
+  }
+});
+
+canvas.addEventListener('pointerup', e => {
+  if (paintStroke) {
+    queuePaintPoint(e);
+    flushPaintQueue();
+    paintStroke = false;
+    if (paintKey === null && paintMode === null) controls.enabled = true;
+    return;
+  }
+  if (isDragging) return;
+  if (!e.ctrlKey && !e.metaKey && S.poleSpritesGroup && S.connected) {
+    const r = canvas.getBoundingClientRect();
+    const m = new THREE.Vector2(((e.clientX-r.left)/r.width)*2-1,
+      -((e.clientY-r.top)/r.height)*2+1);
+    raycaster.setFromCamera(m, camera);
+    const hits = raycaster.intersectObjects(S.poleSpritesGroup.children, false);
+    if (hits.length && hits[0].object.userData.polePid !== undefined) {
+      choosePole(hits[0].object.userData.polePid);
+      return;
+    }
+  }
+  if (!e.ctrlKey && !e.metaKey) return;
+  if (!S.connected) return;
+
+  fireRipple(e.clientX, e.clientY);
+
+  const rect  = canvas.getBoundingClientRect();
+  const mouse = new THREE.Vector2(
+    ((e.clientX - rect.left) / rect.width)  * 2 - 1,
+   -((e.clientY - rect.top)  / rect.height) * 2 + 1
+  );
+  raycaster.setFromCamera(mouse, camera);
+
+  let hitPt = null;
+  const targets = [S.cableCloud, S.bgCloud].filter(Boolean);
+
+  for (const cloud of targets) {
+    raycaster.params.Points.threshold = cloud === S.cableCloud
+      ? Math.max(gv('cvSzS') * 0.15, 0.4)
+      : Math.max(gv('bgSzS') * 0.40, 0.8);
+
+    const hits = raycaster.intersectObject(cloud);
+    if (hits.length > 0) {
+      hitPt = hits[0].point.clone();
+      break;
+    }
+  }
+
+  if (!hitPt) { console.warn('No point intersected.'); return; }
+
+  const worldPt = [
+    hitPt.x + S.geoOffset.x,
+    hitPt.y + S.geoOffset.y,
+    hitPt.z + S.geoOffset.z,
+  ];
+
+  const sid = S.activeSlot;
+  const sl  = S.slots[sid];
+  sl.seeds.push(worldPt);
+
+  addMarker(sid, [hitPt.x, hitPt.y, hitPt.z]);
+  updateStatText(sid, sl.seeds.length, sl.nTotal, null, null);
+  requestSlotCalc(sid);
+});
+
+function requestSlotCalc(sid) {
+  const sl = S.slots[sid];
+  if (sl.seeds.length === 0) return;
+  showLoad(
+    sid === 0 ? 'Detecting L1, L2 and L3...' : `Tracing L${sid+1}...`,
+    sid === 0 ? 'Finding the bounding poles of the span' : `${sl.seeds.length} seeds`
+  );
+  wsSend({
+    type:        sid === 0 ? 'auto_select_span' : 'select_seeds',
+    slot_id:     sid,
+    seeds:       sl.seeds,
+    perp_radius: gv('prSlider'),
+    eps_grow:    gv('epsSlider'),
+    gap_radius:  gv('gapSlider'),
+    momentum:    gv('momSlider'),
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   BUTTON EVENTS: LABELING, UNDO, VIEW
+════════════════════════════════════════════════════════════════════ */
+function setPaintMode(slot) {
+  paintMode = paintMode === slot ? null : slot;
+  controls.enabled = paintMode === null && paintKey === null;
+  canvas.style.cursor = paintMode === null ? '' : 'crosshair';
+  [0, 1, 2].forEach(i => {
+    document.getElementById(`btnPaint${i + 1}`).classList.toggle('active', paintMode === i);
+  });
+  const help = document.getElementById('paintHelp');
+  help.textContent = paintMode === null
+    ? 'Activate a color and drag over the cables. Press again to move the camera.'
+    : `Painting L${paintMode + 1}: camera locked · drag with left click`;
+  if (paintMode !== null) setActiveSlot(paintMode);
+}
+
+document.getElementById('btnPaint1').addEventListener('click', () => setPaintMode(0));
+document.getElementById('btnPaint2').addEventListener('click', () => setPaintMode(1));
+document.getElementById('btnPaint3').addEventListener('click', () => setPaintMode(2));
+
+document.getElementById('btnLbl1').addEventListener('click', () => wsSend({ type: 'label_line', line_index: 1, slot_id: 0, label: slotLbl(0) }));
+document.getElementById('btnLbl2').addEventListener('click', () => wsSend({ type: 'label_line', line_index: 2, slot_id: 1, label: slotLbl(1) }));
+document.getElementById('btnLbl3').addEventListener('click', () => wsSend({ type: 'label_line', line_index: 3, slot_id: 2, label: slotLbl(2) }));
+document.getElementById('btnLblAll').addEventListener('click', () => {
+  wsSend({
+    type: 'label_all_lines',
+    labels: { 0: slotLbl(0), 1: slotLbl(1), 2: slotLbl(2) }
+  });
+});
+
+document.getElementById('btnFinalize').addEventListener('click', finalizeAll);
+
+document.getElementById('btnUndo').addEventListener('click', () => {
+  const sid = S.activeSlot;
+  const sl = S.slots[sid];
+  if (sl.seeds.length === 0) return;
+  sl.seeds.pop();
+
+  if (sl.markers.children.length > 0) {
+    const lastMarker = sl.markers.children[sl.markers.children.length - 1];
+    sl.markers.remove(lastMarker);
+    lastMarker.geometry.dispose();
+    lastMarker.material.dispose();
+  }
+
+  if (sl.seeds.length === 0) {
+    clearSlot(sid);
+  } else {
+    updateStatText(sid, sl.seeds.length, sl.nTotal, null, null);
+    requestSlotCalc(sid);
+  }
+});
+
+document.getElementById('cvSzS').addEventListener('input', e => {
+  const val = parseFloat(e.target.value);
+  document.getElementById('cvSzVal').textContent = val.toFixed(1);
+  if (S.cableCloud && S.cableCloud.material) S.cableCloud.material.size = val * 0.016;
+  S.slots.forEach(sl => {
+    if (sl.cloud && sl.cloud.material) sl.cloud.material.size = val * 0.018;
+  });
+});
+
+document.getElementById('poleSzS').addEventListener('input', e => {
+  const val = parseFloat(e.target.value);
+  document.getElementById('poleSzVal').textContent = val.toFixed(1);
+  if (S.poleCloud && S.poleCloud.material) S.poleCloud.material.size = val * 0.016;
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   UI HELPERS
+════════════════════════════════════════════════════════════════════ */
+function setActiveSlot(idx) {
+  S.activeSlot = idx;
+  document.querySelectorAll('.slot-card').forEach((el, i) =>
+    el.classList.toggle('active', i === idx));
+  document.getElementById('stSlot').textContent = slotTag(idx);
+}
+
+function clearSlot(idx, ev) {
+  if (ev) ev.stopPropagation();
+  const sl = S.slots[idx];
+  sl.seeds = []; sl.nTotal = 0; sl.lastMsg = null; sl.connCode = null;
+  clearMarkers(idx);
+
+  if (sl.cloud) {
+    scene.remove(sl.cloud); sl.cloud.geometry.dispose();
+    sl.cloud.material.dispose(); sl.cloud = null;
+  }
+
+  const badge = document.getElementById(`conn-badge-${idx}`);
+  if (badge) badge.style.display = 'none';
+
+  updateStatText(idx, 0, 0, null, null);
+  document.getElementById(`warn-${idx}`).style.display = 'none';
+  document.getElementById(STAT_IDS[idx]).textContent = '—';
+
+  const anyActive = S.slots.some(s => s.cloud && s.nTotal > 0);
+  if (!anyActive) {
+    S.activeSpan = null;
+    const panel = document.getElementById('spanPanel');
+    if (panel) panel.style.display = 'none';
+    updatePoleSprites([]);
+  } else {
+    computeSlotConnections();
+  }
+}
+
+function focusSlot(idx, ev) {
+  if (ev) ev.stopPropagation();
+  const sl = S.slots[idx];
+  if (!sl.cloud) return;
+  sl.cloud.geometry.computeBoundingBox();
+  const box = sl.cloud.geometry.boundingBox.clone();
+  box.translate(sl.cloud.position);
+  const cen = new THREE.Vector3(); box.getCenter(cen);
+  const sz  = new THREE.Vector3(); box.getSize(sz);
+  const d   = Math.max(sz.x, sz.y, sz.z) * 0.7;
+  camera.position.set(cen.x, cen.y - d*0.6, cen.z + d*0.3);
+  controls.target.copy(cen); controls.update();
+}
+
+function updateStatText(sid, nS, nP, sLen, ptsPerM) {
+  let t = `${nS} seed${nS !== 1 ? 's' : ''}`;
+  t += nP > 0 ? ` · <strong>${nP.toLocaleString()}</strong> pts` : ' · — pts';
+  if (sLen != null) t += `<br>Length: ${sLen}m · <strong>${ptsPerM} pts/m</strong>`;
+  document.getElementById(`stat-${sid}`).innerHTML = t;
+}
+
+function setWSBadge(cls, txt) {
+  S.connected = (cls === 'ok');
+  document.getElementById('wsBadge').className = `badge ${cls}`;
+  document.getElementById('wsLabel').textContent = txt;
+}
+function setPLYBadge(cls, txt) {
+  document.getElementById('plyBadge').className = `badge ${cls}`;
+  document.getElementById('plyLabel').textContent = txt;
+}
+function showLoad(msg, sub) {
+  document.getElementById('lmsg').textContent = msg;
+  document.getElementById('lsub').textContent = sub ?? '';
+  document.getElementById('loadOv').classList.add('show');
+}
+function hideLoad() { document.getElementById('loadOv').classList.remove('show'); }
+function fireRipple(x, y) {
+  const r = document.getElementById('ripple');
+  r.style.left = x+'px'; r.style.top = y+'px';
+  r.classList.remove('fire'); void r.offsetWidth; r.classList.add('fire');
+}
+
+document.getElementById('btnClearAll').addEventListener('click', () => {
+  resetSlotConfig();
+  S.activeSpan = null;
+  const panel = document.getElementById('spanPanel');
+  if (panel) panel.style.display = 'none';
+  updatePoleSprites([]);
+  [0,1,2].forEach(i => clearSlot(i));
+  wsSend({ type: 'clear_all' });
+});
+
+function updateUIForSlotConfig() {
+  for (let sid = 0; sid < 3; sid++) {
+    const cfg = currentSlotConfig[sid];
+    const card = document.getElementById(`slot-${sid}`);
+    if (card) {
+      const bar = card.querySelector('.slot-active-bar');
+      if (bar) bar.style.background = cfg.css;
+      const swatch = card.querySelector('.slot-swatch');
+      if (swatch) {
+        swatch.style.background = cfg.css;
+        swatch.style.boxShadow = `0 0 5px ${cfg.css}`;
+      }
+      const title = document.getElementById(`slot-title-${sid}`);
+      if (title) title.textContent = cfg.name;
+    }
+    const btn = document.getElementById(`btnLbl${sid + 1}`);
+    if (btn) {
+      btn.textContent = `Label ${cfg.tag}`;
+      btn.style.borderColor = cfg.css;
+      btn.style.color = cfg.css;
+    }
+    const stLabel = document.getElementById(`stLblHead${sid}`);
+    if (stLabel) stLabel.textContent = cfg.tag;
+
+    const badge = document.getElementById(`conn-badge-${sid}`);
+    if (badge) {
+      badge.style.color = cfg.css;
+      badge.style.borderColor = cfg.css;
+    }
+
+    const sl = S.slots[sid];
+    if (sl.cloud && sl.cloud.material) sl.cloud.material.color.setHex(cfg.hex);
+    if (sl.markers) {
+      sl.markers.children.forEach(c => {
+        if (c.material) c.material.color.setHex(cfg.hex);
+      });
+    }
+  }
+  document.getElementById('stSlot').textContent = slotTag(S.activeSlot);
+
+  const activeSl = S.slots[S.activeSlot];
+  if (activeSl && activeSl.lastMsg) updateTipInfo(S.activeSlot);
+}
+
+function resetSlotConfig() {
+  currentSlotConfig = DEFAULT_SLOT_CONFIG.map(c => ({ ...c }));
+  // Reset combination cycle to first entry (SMI/SMI)
+  poleCombinationIdx = 0;
+  const cfgA = document.getElementById('cfgPoleA');
+  if (cfgA) cfgA.value = POLE_COMBINATIONS[0].a;
+  const cfgB = document.getElementById('cfgPoleB');
+  if (cfgB) cfgB.value = POLE_COMBINATIONS[0].b;
+  updateUIForSlotConfig();
+  computeSlotConnections();
+  wsSend({ type: 'reset_slot_labels' });
+}
+
+/* Move data from one slot to another, keeping the target slot's
+   color/name/position fixed on the UI. */
+function _swapSlotData(sid, data) {
+  const sl = S.slots[sid];
+  sl.seeds   = data.seeds;
+  sl.nTotal  = data.nTotal;
+  sl.lastMsg = data.lastMsg;
+  sl.cloud   = data.cloud;
+
+  if (sl.cloud && sl.cloud.material) {
+    sl.cloud.material.color.setHex(slotHex(sid));
+    sl.cloud.renderOrder = 10 + sid;
+  }
+
+  clearMarkers(sid);
+  if (data.snapSeeds && data.snapSeeds.length > 0) {
+    data.snapSeeds.forEach(normPt => addMarker(sid, normPt));
+  } else if (data.seeds && data.seeds.length > 0) {
+    data.seeds.forEach(pt => addMarker(sid, [
+      pt[0] - S.geoOffset.x,
+      pt[1] - S.geoOffset.y,
+      pt[2] - S.geoOffset.z
+    ]));
+  }
+
+  if (data.lastMsg) {
+    updateStatText(sid, sl.seeds.length, data.nTotal,
+                   data.lastMsg.spine_length_m, data.lastMsg.pts_per_m);
+  }
+  document.getElementById(STAT_IDS[sid]).textContent = data.nTotal.toLocaleString();
+  document.getElementById(`warn-${sid}`).style.display = 'none';
+}
+
+function _snapshotSlots() {
+  return S.slots.map(sl => ({
+    seeds:     sl.seeds.slice(),
+    nTotal:    sl.nTotal,
+    cloud:     sl.cloud,
+    lastMsg:   sl.lastMsg,
+    snapSeeds: (sl.lastMsg && sl.lastMsg.snap_seeds) ? sl.lastMsg.snap_seeds.slice() : []
+  }));
+}
+
+/* Apply a permutation `order` where new_slot[i] = old_slot[order[i]] */
+function _applySlotOrder(order) {
+  const oldData = _snapshotSlots();
+  for (let sid = 0; sid < 3; sid++) {
+    _swapSlotData(sid, oldData[order[sid]]);
+  }
+
+  if (S.activeSpan && S.activeSpan.linesInfo && S.activeSpan.linesInfo.length === 3) {
+    const oldInfo = S.activeSpan.linesInfo.slice();
+    S.activeSpan.linesInfo = [oldInfo[order[0]], oldInfo[order[1]], oldInfo[order[2]]];
+  }
+
+  currentSlotConfig = DEFAULT_SLOT_CONFIG.map(c => ({ ...c }));
+  updateUIForSlotConfig();
+  computeSlotConnections();
+}
+
+/* →  Right arrow: rotate ring L1←L3, L2←L1, L3←L2 (order [2,0,1]) */
+function rotateSlotsRight() {
+  const has3Lines = S.slots.every(sl => sl.cloud && sl.nTotal > 0);
+  if (!has3Lines) return false;
+  const order = [2, 0, 1];
+  _applySlotOrder(order);
+  wsSend({ type: 'rotate_slots', order });
+  return true;
+}
+
+/* ←  Left arrow: rotate ring opposite L1←L2, L2←L3, L3←L1 (order [1,2,0]) */
+function rotateSlotsLeft() {
+  const has3Lines = S.slots.every(sl => sl.cloud && sl.nTotal > 0);
+  if (!has3Lines) return false;
+  const order = [1, 2, 0];
+  _applySlotOrder(order);
+  wsSend({ type: 'rotate_slots', order });
+  return true;
+}
+
+/* ↑ / ↓  Keep L1 (red) fixed, swap L2 ↔ L3 (order [0,2,1]) */
+function swapMiddleAndBottom() {
+  const has3Lines = S.slots.every(sl => sl.cloud && sl.nTotal > 0);
+  if (!has3Lines) return false;
+  const order = [0, 2, 1];
+  _applySlotOrder(order);
+  wsSend({ type: 'rotate_slots', order });
+  return true;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   KEYBOARD
+════════════════════════════════════════════════════════════════════ */
+window.addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+  /* Q — cycle pole combination (SMI / ESE) */
+  if (e.key === 'q' || e.key === 'Q') {
+    if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+      cyclePoleCombination();
+      e.preventDefault();
+      return;
+    }
+  }
+
+  if (e.key === 'Enter' && !e.repeat && S.connected) {
+    e.preventDefault(); document.getElementById('btnLblAll').click(); return;
+  }
+
+  if (e.key === 'ArrowRight') {
+    if (rotateSlotsRight()) { e.preventDefault(); return; }
+  }
+  if (e.key === 'ArrowLeft') {
+    if (rotateSlotsLeft()) { e.preventDefault(); return; }
+  }
+  if (e.key === 'ArrowUp') {
+    if (swapMiddleAndBottom()) { e.preventDefault(); return; }
+  }
+  if (e.key === 'ArrowDown') {
+    if (swapMiddleAndBottom()) { e.preventDefault(); return; }
+  }
+
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    document.getElementById('btnUndo').click();
+    return;
+  }
+
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+  if (['1','2','3'].includes(e.key)) {
+    paintKey = +e.key - 1;
+    setActiveSlot(paintKey);
+    controls.enabled = false;
+  }
+  if (e.key === 'r' || e.key === 'R') {
+    camera.position.copy(defCamPos); controls.target.copy(defTarget); controls.update();
+  }
+  if (e.key === 'Escape') {
+    document.getElementById('cableTip').classList.remove('show');
+    if (paintMode !== null) setPaintMode(paintMode);
+  }
+});
+
+window.addEventListener('keyup', e => {
+  if (['1','2','3'].includes(e.key) && paintKey === +e.key - 1) {
+    paintKey = null;
+    if (!paintStroke && paintMode === null) controls.enabled = true;
+  }
+});
+
+window.addEventListener('blur', () => {
+  paintKey = null;
+  paintStroke = false;
+  controls.enabled = paintMode === null;
+  flushPaintQueue();
+});
+
+setTimeout(connect, 400);
+</script>
+</body>
+</html>

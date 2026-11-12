@@ -1,0 +1,229 @@
+{
+  "labels": [
+    {
+      "id": 0,
+      "title": "Unclassified",
+      "group": "Background"
+    },
+    {
+      "id": 1,
+      "title": "Ground",
+      "group": "Background"
+    },
+    {
+      "id": 2,
+      "title": "Vegetation",
+      "group": "Background"
+    },
+    {
+      "id": 3,
+      "title": "Buildings",
+      "group": "Background"
+    },
+    {
+      "id": 4,
+      "title": "LV Poles",
+      "group": "Background"
+    },
+    {
+      "id": 5,
+      "title": "LV Wires",
+      "group": "Background"
+    },
+    {
+      "id": 6,
+      "title": "MV Poles",
+      "group": "Background"
+    },
+    {
+      "id": 7,
+      "title": "MV Wires",
+      "group": "Background"
+    },
+    {
+      "id": 8,
+      "title": "HV Poles",
+      "group": "Background"
+    },
+    {
+      "id": 9,
+      "title": "HV Wires",
+      "group": "Background"
+    },
+    {
+      "id": 10,
+      "title": "Ads",
+      "group": "Background"
+    },
+    {
+      "id": 11,
+      "title": "Rubble",
+      "group": "Background"
+    },
+    {
+      "id": 12,
+      "title": "Scaffolding",
+      "group": "Background"
+    },
+    {
+      "id": 13,
+      "title": "Ladder",
+      "group": "Background"
+    },
+    {
+      "id": 14,
+      "title": "Bricks",
+      "group": "Background"
+    },
+    {
+      "id": 15,
+      "title": "MV Electrical Works",
+      "group": "Background"
+    },
+    {
+      "id": 21,
+      "title": "MV Wires 1",
+      "group": "MV Wires"
+    },
+    {
+      "id": 22,
+      "title": "MV Wires 2",
+      "group": "MV Wires"
+    },
+    {
+      "id": 23,
+      "title": "MV Wires 3",
+      "group": "MV Wires"
+    },
+    {
+      "id": 24,
+      "title": "Reconstruction MV Poles",
+      "group": "MV Line"
+    },
+    {
+      "id": 25,
+      "title": "Reconstruction MV Crossarms",
+      "group": "MV Line"
+    },
+    {
+      "id": 26,
+      "title": "Reconstruction MV Wires",
+      "group": "MV Line"
+    },
+    {
+      "id": 27,
+      "title": "Reconstruction MV Connecting",
+      "group": "MV Line"
+    },
+    {
+      "id": 40,
+      "title": "DMS Vegetation",
+      "group": "DMS"
+    },
+    {
+      "id": 41,
+      "title": "DMS LV Wires",
+      "group": "DMS"
+    },
+    {
+      "id": 42,
+      "title": "DMS Ads",
+      "group": "DMS"
+    },
+    {
+      "id": 43,
+      "title": "DMS Buildings",
+      "group": "DMS"
+    },
+    {
+      "id": 44,
+      "title": "DMS Ground",
+      "group": "DMS"
+    },
+    {
+      "id": 45,
+      "title": "DMS LV Poles",
+      "group": "DMS"
+    },
+    {
+      "id": 46,
+      "title": "DMS Rubble",
+      "group": "DMS"
+    },
+    {
+      "id": 47,
+      "title": "DMS Scaffolding",
+      "group": "DMS"
+    },
+    {
+      "id": 48,
+      "title": "DMS Ladder",
+      "group": "DMS"
+    },
+    {
+      "id": 49,
+      "title": "DMS Bricks",
+      "group": "DMS"
+    },
+    {
+      "id": 50,
+      "title": "DMS MV Electrical Works",
+      "group": "DMS"
+    },
+    {
+      "id": 51,
+      "title": "CP Vegetation",
+      "group": "Critical Points"
+    },
+    {
+      "id": 52,
+      "title": "CP LV Wires",
+      "group": "Critical Points"
+    },
+    {
+      "id": 53,
+      "title": "CP Ads",
+      "group": "Critical Points"
+    },
+    {
+      "id": 54,
+      "title": "CP Buildings",
+      "group": "Critical Points"
+    },
+    {
+      "id": 55,
+      "title": "CP Ground",
+      "group": "Critical Points"
+    },
+    {
+      "id": 56,
+      "title": "CP LV Poles",
+      "group": "Critical Points"
+    },
+    {
+      "id": 57,
+      "title": "CP Rubble",
+      "group": "Critical Points"
+    },
+    {
+      "id": 58,
+      "title": "CP Scaffolding",
+      "group": "Critical Points"
+    },
+    {
+      "id": 59,
+      "title": "CP Ladder",
+      "group": "Critical Points"
+    },
+    {
+      "id": 60,
+      "title": "CP Bricks",
+      "group": "Critical Points"
+    },
+    {
+      "id": 61,
+      "title": "CP MV Electrical Works",
+      "group": "Critical Points"
+    }
+  ]
+}
